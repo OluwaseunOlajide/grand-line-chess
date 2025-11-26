@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Piece Chess: Grand Line Battle</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"
+        integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- 1. GLOBAL VARIABLES --- */
+        :root {
+            --gold: #FFD700;
+            --wood-dark: #3E2723;
+            --wood-light: #8D6E63;
+            --parchment: #F4E1C1;
+            --parchment-dark: #dcbfa6;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--wood-dark);
+            color: var(--wood-dark);
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* --- 2. SCREEN MANAGEMENT --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+            background-color: var(--parchment);
+            background-image: repeating-linear-gradient(45deg, var(--parchment) 0, var(--parchment) 10px, var(--parchment-dark) 10px, var(--parchment-dark) 11px);
+        }
+
+        .hidden {
+            display: none !important;
+            z-index: -1;
+        }
+
+        /* --- 3. UI ELEMENTS --- */
+        h1,
+        h2,
+        h3 {
+            font-family: 'Pirata One', cursive;
+            color: var(--wood-dark);
+            text-align: center;
+            margin: 0 0 20px 0;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            text-shadow: 2px 2px 0px rgba(255, 215, 0, 0.4);
+        }
+
+        h2 {
+            font-size: 3rem;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .pirate-btn {
+            background: var(--wood-dark);
+            border: 3px solid var(--gold);
+            color: var(--gold);
+            padding: 15px 40px;
+            font-family: 'Pirata One', cursive;
+            font-size: 1.8rem;
+            cursor: pointer;
+            margin: 10px;
+            transition: 0.2s;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+            min-width: 200px;
+        }
+
+        .pirate-btn:hover {
+            background: var(--gold);
+            color: var(--wood-dark);
+            transform: translateY(-3px);
+        }
+
+        .pirate-btn.secondary {
+            background: var(--wood-light);
+            border-color: var(--wood-dark);
+            color: #fff;
+        }
+
+        .pirate-btn.small {
+            padding: 5px 15px;
+            font-size: 1.2rem;
+            min-width: auto;
+        }
+
+        .pirate-btn.warning {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .pirate-btn.warning:hover {
+            background: #ff4444;
+            color: white;
+        }
+
+        /* --- 4. BOARD LAYOUT --- */
+        .game-hud {
+            width: 65vmin;
+            max-width: 550px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-family: 'Pirata One', cursive;
+            font-size: 1.5rem;
+            color: var(--wood-dark);
+        }
+
+        /* THE CONTAINER (Handles Border & Theme) */
+        .board-container {
+            width: 65vmin;
+            height: 65vmin;
+            max-width: 550px;
+            max-height: 550px;
+            border: 15px solid var(--wood-light);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+            flex-shrink: 0 !important;
+            position: relative;
+            background: #333;
+            transition: border-color 0.3s ease;
+        }
+
+        /* THE GRID */
+        .game-board {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+        }
+
+        /* --- 5. THEMES --- */
+        .square {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Default */
+        .square.light {
+            background-color: #e8c39e;
+        }
+
+        .square.dark {
+            background-color: #8b5a2b;
+        }
+
+        /* Wano */
+        .board-theme-wano {
+            border-color: #d88c9a !important;
+        }
+
+        .board-theme-wano .square.light {
+            background-color: #f7e7ce;
+        }
+
+        .board-theme-wano .square.dark {
+            background-color: #d88c9a;
+        }
+
+        /* Marineford */
+        .board-theme-marineford {
+            border-color: #455a64 !important;
+        }
+
+        .board-theme-marineford .square.light {
+            background-color: #cfd8dc;
+        }
+
+        .board-theme-marineford .square.dark {
+            background-color: #546e7a;
+        }
+
+        /* --- 6. PIECES --- */
+        .piece {
+            width: 55%;
+            height: 55%;
+            object-fit: contain;
+            cursor: pointer;
+            filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5));
+            pointer-events: none;
+            /* Allows clicks to pass to square */
+            transition: transform 0.1s;
+        }
+
+        .square.selected {
+            background-color: rgba(255, 215, 0, 0.5) !important;
+            box-shadow: inset 0 0 15px var(--gold);
+        }
+
+        .square.legal-move::after {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            background-color: rgba(50, 205, 50, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* --- 7. MODALS & SHOP --- */
+        .shop-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .shop-item {
+            background: rgba(0, 0, 0, 0.1);
+            border: 2px solid var(--wood-light);
+            padding: 15px;
+            text-align: center;
+            width: 180px;
+        }
+
+        #modal-pause {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(2px);
+        }
+
+        .pause-menu {
+            background: var(--parchment);
+            border: 5px solid var(--wood-light);
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 50px #000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="screen-home" class="screen">
+        <h1>GRAND LINE CHESS</h1>
+        <p>The Era of Strategy Begins!</p>
+        <button id="btn-play" class="pirate-btn">SET SAIL (PLAY)</button>
+        <button id="btn-shop" class="pirate-btn secondary">LOG POSE (SHOP)</button>
+    </div>
+
+    <div id="screen-shop" class="screen hidden">
+        <h2>NEW WORLD LOG POSE</h2>
+        <p>Current Bounty: ฿ <span id="shop-bounty-display">0</span></p>
+        <div class="shop-container">
+            <div class="shop-item">
+                <h3>EAST BLUE</h3>
+                <button id="btn-theme-default" class="pirate-btn small" onclick="equipTheme('default')">OWNED</button>
+            </div>
+            <div class="shop-item" id="item-wano">
+                <h3>WANO KUNI</h3>
+                <p>100,000,000</p>
+                <button class="pirate-btn small" onclick="buyTheme('wano', 100000000)">UNLOCK</button>
+            </div>
+            <div class="shop-item" id="item-marineford">
+                <h3>MARINEFORD</h3>
+                <p>500,000,000</p>
+                <button class="pirate-btn small" onclick="buyTheme('marineford', 500000000)">UNLOCK</button>
+            </div>
+        </div>
+        <button id="btn-back-shop" class="pirate-btn small" style="margin-top: 20px;">Return to Deck</button>
+    </div>
+
+    <div id="screen-difficulty" class="screen hidden">
+        <h2>SELECT OPPONENT</h2>
+        <button class="pirate-btn" onclick="startGame('easy')">EASY (BUGGY)</button>
+        <button class="pirate-btn" onclick="startGame('medium')">NORMAL (DOFFY)</button>
+        <button class="pirate-btn warning" onclick="startGame('hard')">HARD (KAIDO)</button>
+        <button id="btn-back-menu" class="pirate-btn small" style="margin-top: 30px;">Back</button>
+    </div>
+
+    <div id="screen-game" class="screen hidden">
+        <div class="game-hud">
+            <button id="btn-open-menu" class="pirate-btn small">⚙️</button>
+            <span class="name">VS MARINES</span>
+            <div>฿ <span id="player-bounty">0</span></div>
+        </div>
+        <div class="board-container">
+            <div id="chess-board" class="game-board"></div>
+        </div>
+    </div>
+
+    <div id="modal-pause" class="screen hidden">
+        <div class="pause-menu">
+            <h2>GAME PAUSED</h2>
+            <button id="btn-resume" class="pirate-btn">RESUME</button>
+            <button id="btn-restart" class="pirate-btn">RESTART</button>
+            <button id="btn-quit" class="pirate-btn warning">QUIT</button>
+        </div>
+    </div>
+
+    <script src="js/chess-lib.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
